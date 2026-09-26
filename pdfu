@@ -1,9 +1,16 @@
 #!/bin/bash
 
 show_help() {
+    echo "pdfu - A command line PDF utility"
+    echo ""
     echo "Usage:"
+    echo "  pdfu info <input.pdf>"
+    echo "  pdfu compress [-v|--verbose] <input.pdf> <output.pdf> [quality]"
     echo "  pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
     echo "  pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]"
+    echo "  pdfu help"
+    echo ""
+    echo "Compression qualities: screen, ebook (default), printer"
     exit 1
 }
 
@@ -33,6 +40,7 @@ case "$COMMAND" in
         PAGES=$(gs -q -dNOSAFER -dNODISPLAY -c "($INPUT) (r) file runpdfbegin pdfpagecount = quit" 2>/dev/null)
         echo "Pages: $PAGES"
         ;;
+    
     compress)
         QUIET="-q"
 
@@ -75,6 +83,7 @@ case "$COMMAND" in
             exit 1
         fi
         ;;
+    
     extract)
         if [ "$#" -lt 3 ]; then
             echo "Usage: pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
@@ -125,7 +134,11 @@ case "$COMMAND" in
            -sOutputFile="$OUTPUT" \
            "$@"
         ;;
-        
+    
+    help)
+        show_help
+        ;;
+
     *)
         show_help
         ;;
