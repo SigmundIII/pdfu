@@ -33,6 +33,48 @@ case "$COMMAND" in
         PAGES=$(gs -q -dNOSAFER -dNODISPLAY -c "($INPUT) (r) file runpdfbegin pdfpagecount = quit" 2>/dev/null)
         echo "Pages: $PAGES"
         ;;
+    compress)
+        QUIET="-q"
+
+        # Check if the first argument is a verbose flag
+        if [[ "$1" == "-v" || "$1" == "--verbose" ]]; then
+            QUIET=""
+            shift # Remove the flag from the arguments list
+        fi
+
+        if [ "$#" -lt 2 ]; then
+            echo "Usage: pdfu compress [-v] <input.pdf> <output.pdf> [quality]"
+            echo "Quality options: screen (lowest size/quality), ebook (default), printer (high quality)"
+            exit 1
+        fi
+
+        INPUT=$1
+        OUTPUT=$2
+        QUALITY=${3:-ebook}
+
+        if [ -f "$OUTPUT" ]; then
+            read -p "File '$OUTPUT' already exists. Overwrite? (y/N): " -r
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Aborted."
+                exit 1
+            fi
+        fi
+
+        TEMP_OUT=$(mktemp)
+
+        # We use $QUIET here. If verbose, it expands to nothing.
+        gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/$QUALITY \
+           -dNOPAUSE -dBATCH $QUIET -sOutputFile="$TEMP_OUT" "$INPUT"
+
+        if [ $? -eq 0 ]; then
+            mv "$TEMP_OUT" "$OUTPUT"
+            echo "Successfully compressed."
+        else
+            echo "Compression failed."
+            rm -f "$TEMP_OUT"
+            exit 1
+        fi
+        ;;
     extract)
         if [ "$#" -lt 3 ]; then
             echo "Usage: pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
