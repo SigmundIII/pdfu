@@ -15,6 +15,24 @@ COMMAND=$1
 shift # Remove the command from the arguments list
 
 case "$COMMAND" in
+    info)
+        if [ "$#" -lt 1 ]; then
+            echo "Usage: pdfu info <input.pdf>"
+            exit 1
+        fi
+        
+        INPUT=$1
+        
+        echo "File: $INPUT"
+        echo "Size: $(du -h "$INPUT" | cut -f1)"
+        
+        # LC_ALL=C prevents 'tr' from failing on binary data
+        echo "Version: $(LC_ALL=C head -n 1 "$INPUT" | LC_ALL=C tr -dc 'a-zA-Z0-9.-')"
+
+        # -dNOSAFER allows Ghostscript to read the file to count pages
+        PAGES=$(gs -q -dNOSAFER -dNODISPLAY -c "($INPUT) (r) file runpdfbegin pdfpagecount = quit" 2>/dev/null)
+        echo "Pages: $PAGES"
+        ;;
     extract)
         if [ "$#" -lt 3 ]; then
             echo "Usage: pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
