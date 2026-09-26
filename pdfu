@@ -1,0 +1,72 @@
+#!/bin/bash
+
+show_help() {
+    echo "Usage:"
+    echo "  pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
+    echo "  pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]"
+    exit 1
+}
+
+if [ "$#" -lt 1 ]; then
+    show_help
+fi
+
+COMMAND=$1
+shift # Remove the command from the arguments list
+
+case "$COMMAND" in
+    extract)
+        if [ "$#" -lt 3 ]; then
+            echo "Usage: pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
+            exit 1
+        fi
+        
+        INPUT=$1
+        OUTPUT=$2
+        shift 2
+        
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        
+        TEMP_FILES=()
+        COUNTER=1
+        
+        for RANGE in "$@"; do
+            START="${RANGE%-*}"
+            END="${RANGE#*-}"
+            
+            TEMP_PDF="$TMP_DIR/part_${COUNTER}.pdf"
+            TEMP_FILES+=("$TEMP_PDF")
+            
+            gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
+               -dFirstPage="$START" \
+               -dLastPage="$END" \
+               -sOutputFile="$TEMP_PDF" \
+               "$INPUT"
+               
+            ((COUNTER++))
+        done
+        
+        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
+           -sOutputFile="$OUTPUT" \
+           "${TEMP_FILES[@]}"
+        ;;
+        
+    merge)
+        if [ "$#" -lt 3 ]; then
+            echo "Usage: pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]"
+            exit 1
+        fi
+        
+        OUTPUT=$1
+        shift # Leave only the input files
+        
+        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
+           -sOutputFile="$OUTPUT" \
+           "$@"
+        ;;
+        
+    *)
+        show_help
+        ;;
+esac
