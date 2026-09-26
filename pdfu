@@ -8,6 +8,7 @@ show_help() {
     echo "  pdfu compress [-v|--verbose] <input.pdf> <output.pdf> [quality]"
     echo "  pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
     echo "  pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]"
+    echo "  pdfu split <input.pdf> <output.pdf> <start-end> [start-end...]"
     echo "  pdfu help"
     echo ""
     echo "Compression qualities: screen, ebook (default), printer"
@@ -133,6 +134,60 @@ case "$COMMAND" in
         gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
            -sOutputFile="$OUTPUT" \
            "$@"
+        ;;
+
+    split)
+        if [ "$#" -lt 3 ]; then
+            echo "Usage: pdfu split <input.pdf> <output.pdf> <start-end> [start-end...]"
+            exit 1
+        fi
+
+        INPUT=$1
+        OUTPUT=$2
+        shift 2
+
+        NUM_RANGES=$#
+        COUNTER=1
+
+        # Separate base name and extension to correctly insert _x
+        if [[ "$OUTPUT" == *.pdf ]]; then
+            BASE="${OUTPUT%.pdf}"
+            EXT=".pdf"
+        else
+            BASE="$OUTPUT"
+            EXT=""
+        fi
+
+        for RANGE in "$@"; do
+            START="${RANGE%-*}"
+            END="${RANGE#*-}"
+
+            # Use exact name for 1 range, append _x for multiple
+            if [ "$NUM_RANGES" -eq 1 ]; then
+                OUT_FILE="$OUTPUT"
+            else
+                OUT_FILE="${BASE}_${COUNTER}${EXT}"
+            fi
+
+            # Ask for confirmation before overwriting
+            if [ -f "$OUT_FILE" ]; then
+                read -p "File '$OUT_FILE' already exists. Overwrite? (y/N): " -r
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    echo "Skipped $OUT_FILE"
+                    ((COUNTER++))
+                    continue
+                fi
+            fi
+
+            gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
+               -dFirstPage="$START" \
+               -dLastPage="$END" \
+               -sOutputFile="$OUT_FILE" \
+               "$INPUT"
+
+            echo "Created $OUT_FILE (Pages: $START-$END)"
+            ((COUNTER++))
+        done
         ;;
     
     help)
