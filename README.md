@@ -1,11 +1,29 @@
-# pdfu
+# 📄 pdfu
 
-`pdfu` is a command-line PDF utility that allows you to manage and manipulate PDF files directly from your terminal. It includes built-in safeguards, such as ensuring output files always use the `.pdf` extension and prompting you before overwriting existing files.
+![Bash](https://img.shields.io/badge/Shell-Bash-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)
+![macOS](https://img.shields.io/badge/OS-macOS-000000?style=flat-square&logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/OS-Linux-FCC624?style=flat-square&logo=linux&logoColor=black)
+![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)
 
-## Installation
+`pdfu` is a lightweight, command-line PDF utility that allows you to manage and manipulate PDF files directly from your terminal. It includes built-in safeguards, such as enforcing `.pdf` extensions and prompting before overwriting existing files.
+
+---
+
+## ✨ Features
+
+*   **✂️ Extract & Split**: Isolate specific page ranges or break a document into multiple files.
+*   **🔗 Merge**: Combine multiple PDF files into one seamless document.
+*   **🗜️ Compress**: Shrink PDF file sizes using standard quality presets.
+*   **🖼️ Images to PDF**: Convert lists or folders of images (`.jpg`, `.png`, `.webp`, etc.) into a single PDF, complete with a visual progress bar.
+*   **ℹ️ Info**: Quickly view a file's size, PDF version, and total page count.
+
+---
+
+## 🚀 Installation
 
 ### 1. Install Dependencies
-**macOS (using Homebrew):**
+
+**macOS (via Homebrew):**
 ```bash
 brew install ghostscript
 ```
@@ -23,52 +41,60 @@ First, make the script executable:
 chmod +x pdfu
 ```
 
-You can now use `pdfu` using one of the following methods:
+Choose one of the following methods to run the tool:
 
-**Option A: System-wide installation**
-Move it to your system's binary folder to run it from anywhere:
-```bash
-sudo mv pdfu /usr/local/bin/
-```
-You can then run commands simply with `pdfu`:
-```bash
-pdfu help
-```
+*   **Option A: System-wide (Recommended)**  
+    Move it to your binary folder to run it from anywhere:
+    ```bash
+    sudo mv pdfu /usr/local/bin/
+    ```
+*   **Option B: Shell Alias**  
+    Add an alias to your `~/.zshrc` or `~/.bashrc` to run it from anywhere without moving the file:
+    ```bash
+    alias pdfu="/full/path/to/pdfu"
+    ```
+*   **Option C: Local Execution**  
+    Keep the file in its current folder and run it directly:
+    ```bash
+    ./pdfu help
+    ```
 
-**Option B: Run it locally**
-Keep the file where it is and run it directly using `./`:
-```bash
-./pdfu help
-```
+---
 
-**Option C: Create an alias**
-Add an alias to your shell configuration file (like `~/.zshrc` or `~/.bashrc`) to run it from anywhere without moving the original file:
-```bash
-alias pdfu="/full/path/to/pdfu"
-```
+## 🛠️ Usage & Commands
 
-## Commands
-You can view the usage menu at any time by running `pdfu help` (or `./pdfu help`).
+Run `pdfu help` at any time to view the usage menu.
 
-*   **Extract Pages**: `pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]`
-    *   Extracts specific page ranges from a PDF and outputs them into a new, single PDF file.
-*   **Merge PDFs**: `pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]`
-    *   Combines multiple PDF files into one final document.
-*   **File Info**: `pdfu info <input.pdf>`
-    *   Displays the PDF's file size, version, and total page count.
-*   **Compress PDF**: `pdfu compress [-v|--verbose] <input.pdf> <output.pdf> [quality]`
-    *   Reduces the file size of a PDF. 
-    *   Quality options include `screen` (lowest size and quality), `ebook` (the default setting), and `printer` (high quality). 
-*   **Split PDF**: `pdfu split <input.pdf> <output.pdf> <start-end> [start-end...]`
-    *   Separates a PDF into multiple distinct files based on the specified page ranges. 
-    *   When multiple ranges are provided, it automatically appends a numbered suffix (e.g., `_1`, `_2`) to the base output file name.
-*   **Images to PDF**: `pdfu img2pdf <output.pdf> <image_or_dir> [image_or_dir...]`
-    *   Compiles a list of individual image files or entire directories into a single PDF document.
-    *   Supported image formats are `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.tif`, `.tiff`, and `.webp`.
-    *   Features a visual terminal progress bar and automatically identifies and skips unsupported file formats or broken images.
+### 📄 Document Manipulation
+*   **Extract Pages**  
+    `pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]`
+*   **Split PDF**  
+    `pdfu split <input.pdf> <output.pdf> <start-end> [start-end...]`  
+    *(Automatically appends `_1`, `_2` to the output name for multiple ranges).*
+*   **Merge PDFs**  
+    `pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]`
 
-## Testing
-The project includes an automated bash script to test the utility's functions.
-*   The script reads sample PDFs and images from a `test/input` directory.
-*   It runs a sequence of commands covering `help`, `info`, `extract`, `merge`, `compress`, `split`, and `img2pdf`.
-*   All test results and generated files are cleanly outputted into a freshly generated `test/output` directory for review.
+### 🗜️ Optimization & Conversion
+*   **Compress PDF**  
+    `pdfu compress [-v|--verbose] <input.pdf> <output.pdf> [quality]`  
+    *(Quality options: `screen`, `ebook` (default), or `printer`).*
+*   **Images to PDF**  
+    `pdfu img2pdf <output.pdf> <image_or_dir> [image_or_dir...]`  
+    *(Automatically identifies and skips unsupported formats or broken images).*
+
+### 🔍 Utility
+*   **File Info**  
+    `pdfu info <input.pdf>`
+
+---
+
+## 🧪 Testing
+
+The project includes an automated bash script (`test_pdfu.sh` / `unit-tests`) to verify all utility functions.
+
+1.  Place sample PDFs and images in the `test/input` directory.
+2.  Run the test script:
+    ```bash
+    ./unit-tests
+    ```
+3.  All generated files and test logs will be outputted cleanly into the `test/output` directory for review.
