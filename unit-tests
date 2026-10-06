@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INPUT_DIR="test"
+INPUT_DIR="test/input"
 OUTPUT_DIR="test/output"
 
 # Reset the output directory for a clean test run
@@ -9,6 +9,7 @@ mkdir -p ${OUTPUT_DIR}
 
 echo "=== Testing 'help' ==="
 pdfu help || true # help exits with 1, || true prevents the script from stopping
+pdfu help >> ${OUTPUT_DIR}/help_output.txt
 
 echo -e "\n=== Testing 'info' ==="
 pdfu info ${INPUT_DIR}/long_pdf.pdf >> ${OUTPUT_DIR}/info_output.txt
