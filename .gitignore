@@ -62,4 +62,4 @@ $RECYCLE.BIN/
 *.vsix
 
 ### Test stuff
-test
+test/output
