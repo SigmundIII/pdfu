@@ -4,15 +4,24 @@ show_help() {
     echo "pdfu - A command line PDF utility"
     echo ""
     echo "Usage:"
-    echo "  pdfu info <input.pdf>"
-    echo "  pdfu compress [-v|--verbose] <input.pdf> <output.pdf> [quality]"
     echo "  pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
     echo "  pdfu merge <output.pdf> <input1.pdf> <input2.pdf> [input...]"
+    echo "  pdfu info <input.pdf>"
+    echo "  pdfu compress [-v|--verbose] <input.pdf> <output.pdf> [quality]"
     echo "  pdfu split <input.pdf> <output.pdf> <start-end> [start-end...]"
+    echo "  pdfu img2pdf <output.pdf> <image_or_dir> [image_or_dir...]"
     echo "  pdfu help"
     echo ""
     echo "Compression qualities: screen, ebook (default), printer"
     exit 1
+}
+
+# New function to ensure the output file always ends in .pdf
+check_output_ext() {
+    if [[ "$1" != *.pdf && "$1" != *.PDF ]]; then
+        echo "Error: Output file '$1' must have a .pdf extension."
+        exit 1
+    fi
 }
 
 if [ "$#" -lt 1 ]; then
@@ -23,68 +32,6 @@ COMMAND=$1
 shift # Remove the command from the arguments list
 
 case "$COMMAND" in
-    info)
-        if [ "$#" -lt 1 ]; then
-            echo "Usage: pdfu info <input.pdf>"
-            exit 1
-        fi
-        
-        INPUT=$1
-        
-        echo "File: $INPUT"
-        echo "Size: $(du -h "$INPUT" | cut -f1)"
-        
-        # LC_ALL=C prevents 'tr' from failing on binary data
-        echo "Version: $(LC_ALL=C head -n 1 "$INPUT" | LC_ALL=C tr -dc 'a-zA-Z0-9.-')"
-
-        # -dNOSAFER allows Ghostscript to read the file to count pages
-        PAGES=$(gs -q -dNOSAFER -dNODISPLAY -c "($INPUT) (r) file runpdfbegin pdfpagecount = quit" 2>/dev/null)
-        echo "Pages: $PAGES"
-        ;;
-    
-    compress)
-        QUIET="-q"
-
-        # Check if the first argument is a verbose flag
-        if [[ "$1" == "-v" || "$1" == "--verbose" ]]; then
-            QUIET=""
-            shift # Remove the flag from the arguments list
-        fi
-
-        if [ "$#" -lt 2 ]; then
-            echo "Usage: pdfu compress [-v] <input.pdf> <output.pdf> [quality]"
-            echo "Quality options: screen (lowest size/quality), ebook (default), printer (high quality)"
-            exit 1
-        fi
-
-        INPUT=$1
-        OUTPUT=$2
-        QUALITY=${3:-ebook}
-
-        if [ -f "$OUTPUT" ]; then
-            read -p "File '$OUTPUT' already exists. Overwrite? (y/N): " -r
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                echo "Aborted."
-                exit 1
-            fi
-        fi
-
-        TEMP_OUT=$(mktemp)
-
-        # We use $QUIET here. If verbose, it expands to nothing.
-        gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/$QUALITY \
-           -dNOPAUSE -dBATCH $QUIET -sOutputFile="$TEMP_OUT" "$INPUT"
-
-        if [ $? -eq 0 ]; then
-            mv "$TEMP_OUT" "$OUTPUT"
-            echo "Successfully compressed."
-        else
-            echo "Compression failed."
-            rm -f "$TEMP_OUT"
-            exit 1
-        fi
-        ;;
-    
     extract)
         if [ "$#" -lt 3 ]; then
             echo "Usage: pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]"
@@ -93,6 +40,7 @@ case "$COMMAND" in
         
         INPUT=$1
         OUTPUT=$2
+        check_output_ext "$OUTPUT"
         shift 2
         
         TMP_DIR=$(mktemp -d)
@@ -129,47 +77,98 @@ case "$COMMAND" in
         fi
         
         OUTPUT=$1
+        check_output_ext "$OUTPUT"
         shift # Leave only the input files
         
         gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
            -sOutputFile="$OUTPUT" \
            "$@"
         ;;
+        
+    info)
+        if [ "$#" -lt 1 ]; then
+            echo "Usage: pdfu info <input.pdf>"
+            exit 1
+        fi
+        
+        INPUT=$1
+        
+        echo "File: $INPUT"
+        echo "Size: $(du -h "$INPUT" | cut -f1)"
+        echo "Version: $(LC_ALL=C head -n 1 "$INPUT" | LC_ALL=C tr -dc 'a-zA-Z0-9.-')"
+        PAGES=$(gs -q -dNOSAFER -dNODISPLAY -c "($INPUT) (r) file runpdfbegin pdfpagecount = quit" 2>/dev/null)
+        echo "Pages: $PAGES"
+        ;;
+        
+    compress)
+        QUIET="-q"
+        
+        if [[ "$1" == "-v" || "$1" == "--verbose" ]]; then
+            QUIET=""
+            shift 
+        fi
 
+        if [ "$#" -lt 2 ]; then
+            echo "Usage: pdfu compress [-v] <input.pdf> <output.pdf> [quality]"
+            echo "Quality options: screen (lowest size/quality), ebook (default), printer (high quality)"
+            exit 1
+        fi
+        
+        INPUT=$1
+        OUTPUT=$2
+        check_output_ext "$OUTPUT"
+        QUALITY=${3:-ebook}
+        
+        if [ -f "$OUTPUT" ]; then
+            read -p "File '$OUTPUT' already exists. Overwrite? (y/N): " -r
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Aborted."
+                exit 1
+            fi
+        fi
+        
+        TEMP_OUT=$(mktemp)
+        
+        gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/$QUALITY \
+           -dNOPAUSE -dBATCH $QUIET -sOutputFile="$TEMP_OUT" "$INPUT"
+           
+        if [ $? -eq 0 ]; then
+            mv "$TEMP_OUT" "$OUTPUT"
+            echo "Successfully compressed."
+        else
+            echo "Compression failed."
+            rm -f "$TEMP_OUT"
+            exit 1
+        fi
+        ;;
+        
     split)
         if [ "$#" -lt 3 ]; then
             echo "Usage: pdfu split <input.pdf> <output.pdf> <start-end> [start-end...]"
             exit 1
         fi
-
+        
         INPUT=$1
         OUTPUT=$2
+        check_output_ext "$OUTPUT"
         shift 2
-
+        
         NUM_RANGES=$#
         COUNTER=1
-
-        # Separate base name and extension to correctly insert _x
-        if [[ "$OUTPUT" == *.pdf ]]; then
-            BASE="${OUTPUT%.pdf}"
-            EXT=".pdf"
-        else
-            BASE="$OUTPUT"
-            EXT=""
-        fi
-
+        
+        # We now know OUTPUT ends in .pdf, so we can strip it cleanly
+        BASE="${OUTPUT%.*}"
+        
         for RANGE in "$@"; do
             START="${RANGE%-*}"
             END="${RANGE#*-}"
-
-            # Use exact name for 1 range, append _x for multiple
+            
             if [ "$NUM_RANGES" -eq 1 ]; then
                 OUT_FILE="$OUTPUT"
             else
-                OUT_FILE="${BASE}_${COUNTER}${EXT}"
+                OUT_FILE="${BASE}_${COUNTER}.pdf"
             fi
-
-            # Ask for confirmation before overwriting
+            
             if [ -f "$OUT_FILE" ]; then
                 read -p "File '$OUT_FILE' already exists. Overwrite? (y/N): " -r
                 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -178,22 +177,125 @@ case "$COMMAND" in
                     continue
                 fi
             fi
-
+            
             gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
                -dFirstPage="$START" \
                -dLastPage="$END" \
                -sOutputFile="$OUT_FILE" \
                "$INPUT"
-
+               
             echo "Created $OUT_FILE (Pages: $START-$END)"
             ((COUNTER++))
         done
         ;;
-    
+        
+    img2pdf)
+        if [ "$#" -lt 2 ]; then
+            echo "Usage: pdfu img2pdf <output.pdf> <image_or_dir> [image_or_dir...]"
+            exit 1
+        fi
+        
+        OUTPUT=$1
+        check_output_ext "$OUTPUT"
+        shift
+        
+        if command -v sips >/dev/null 2>&1; then
+            CONVERTER="sips"
+        elif command -v magick >/dev/null 2>&1; then
+            CONVERTER="magick"
+        elif command -v convert >/dev/null 2>&1; then
+            CONVERTER="convert"
+        else
+            echo "Error: No image tool found (sips, magick, or convert)."
+            exit 1
+        fi
+        
+        IMAGE_LIST=()
+        shopt -s nocasematch nullglob
+        
+        for ARG in "$@"; do
+            if [ -d "$ARG" ]; then
+                DIR_IMAGES=()
+                for IMG in "$ARG"/*; do
+                    if [[ "$IMG" =~ \.(jpg|jpeg|png|gif|bmp|tif|tiff|webp)$ ]]; then
+                        DIR_IMAGES+=("$IMG")
+                    fi
+                done
+                if [ ${#DIR_IMAGES[@]} -gt 0 ]; then
+                    while IFS= read -r line; do
+                        IMAGE_LIST+=("$line")
+                    done < <(printf '%s\n' "${DIR_IMAGES[@]}" | sort)
+                fi
+            elif [ -f "$ARG" ]; then
+                if [[ "$ARG" =~ \.(jpg|jpeg|png|gif|bmp|tif|tiff|webp)$ ]]; then
+                    IMAGE_LIST+=("$ARG")
+                fi
+            fi
+        done
+        
+        shopt -u nocasematch nullglob
+        
+        TOTAL=${#IMAGE_LIST[@]}
+        if [ "$TOTAL" -eq 0 ]; then
+            echo "No valid images found."
+            exit 1
+        fi
+        
+        TMP_DIR=$(mktemp -d)
+        trap 'rm -rf "$TMP_DIR"' EXIT
+        TEMP_FILES=()
+        COUNTER=1
+        PROCESSED=0
+        
+        BAR="##################################################"
+        SPACES="                                                  "
+        
+        echo "Processing $TOTAL image(s)..."
+        
+        for IMG in "${IMAGE_LIST[@]}"; do
+            TEMP_PDF="$TMP_DIR/img_${COUNTER}.pdf"
+            
+            if [ "$CONVERTER" = "sips" ]; then
+                sips -s format pdf "$IMG" --out "$TEMP_PDF" >/dev/null 2>&1
+            elif [ "$CONVERTER" = "magick" ]; then
+                magick "$IMG" "$TEMP_PDF" >/dev/null 2>&1
+            else
+                convert "$IMG" "$TEMP_PDF" >/dev/null 2>&1
+            fi
+            
+            if [ -f "$TEMP_PDF" ]; then
+                TEMP_FILES+=("$TEMP_PDF")
+                ((COUNTER++))
+            fi
+            
+            ((PROCESSED++))
+            PERCENT=$(( PROCESSED * 100 / TOTAL ))
+            FILLED=$(( PERCENT / 2 ))
+            EMPTY=$(( 50 - FILLED ))
+            printf "\r[%s%s] %d%% (%d/%d)" "${BAR:0:FILLED}" "${SPACES:0:EMPTY}" "$PERCENT" "$PROCESSED" "$TOTAL"
+        done
+        
+        echo ""
+        
+        if [ ${#TEMP_FILES[@]} -eq 0 ]; then
+            echo "Error: No images were successfully converted."
+            exit 1
+        elif [ ${#TEMP_FILES[@]} -lt "$TOTAL" ]; then
+            echo "Warning: $(( TOTAL - ${#TEMP_FILES[@]} )) image(s) failed to convert."
+        fi
+        
+        echo "Merging into PDF..."
+        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -q \
+           -sOutputFile="$OUTPUT" \
+           "${TEMP_FILES[@]}"
+           
+        echo "Successfully created $OUTPUT"
+        ;;
+        
     help)
         show_help
         ;;
-
+        
     *)
         show_help
         ;;
