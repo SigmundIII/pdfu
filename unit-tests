@@ -1,0 +1,40 @@
+#!/bin/bash
+
+INPUT_DIR="test"
+OUTPUT_DIR="test/output"
+
+# Reset the output directory for a clean test run
+rm -rf ${OUTPUT_DIR}
+mkdir -p ${OUTPUT_DIR}
+
+echo "=== Testing 'help' ==="
+pdfu help || true # help exits with 1, || true prevents the script from stopping
+
+echo -e "\n=== Testing 'info' ==="
+pdfu info ${INPUT_DIR}/long_pdf.pdf >> ${OUTPUT_DIR}/info_output.txt
+
+echo -e "\n=== Testing 'extract' ==="
+pdfu extract ${INPUT_DIR}/long_pdf.pdf ${OUTPUT_DIR}/extracted.pdf 1-2 4-5
+
+echo -e "\n=== Testing 'merge' ==="
+pdfu merge ${OUTPUT_DIR}/merged.pdf ${INPUT_DIR}/pdf_1.pdf ${INPUT_DIR}/pdf_2.pdf ${INPUT_DIR}/short_pdf.pdf
+
+echo -e "\n=== Testing 'compress' ==="
+pdfu compress -v ${INPUT_DIR}/long_pdf.pdf ${OUTPUT_DIR}/compressed.pdf screen
+
+echo -e "\n=== Testing 'split' ==="
+pdfu split ${INPUT_DIR}/long_pdf.pdf ${OUTPUT_DIR}/split_out.pdf 1-2 3-4
+
+echo -e "\n=== Testing 'img2pdf' ==="
+# Assuming the images have standard extensions
+pdfu img2pdf ${OUTPUT_DIR}/images_alone.pdf /
+    ${INPUT_DIR}/img_0.webp /
+    ${INPUT_DIR}/img_1.avif /
+    ${INPUT_DIR}/img_2.png /
+    ${INPUT_DIR}/img_3.png /
+    ${INPUT_DIR}/img_4.webp /
+    ${INPUT_DIR}/img_5.jpg
+pdfu img2pdf ${OUTPUT_DIR}/images_dir.pdf ${INPUT_DIR}/images
+pdfu img2pdf ${OUTPUT_DIR}/images_both.pdf ${INPUT_DIR}/images ${INPUT_DIR}/images/img_5.jpg
+
+echo -e "\n✅ All tests finished! Check the '${OUTPUT_DIR}'."
