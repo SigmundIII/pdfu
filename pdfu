@@ -211,14 +211,21 @@ case "$COMMAND" in
         fi
         
         IMAGE_LIST=()
+        UNSUPPORTED_FILES=()
+        FAILED_IMAGES=()
+        
         shopt -s nocasematch nullglob
         
         for ARG in "$@"; do
             if [ -d "$ARG" ]; then
                 DIR_IMAGES=()
-                for IMG in "$ARG"/*; do
-                    if [[ "$IMG" =~ \.(jpg|jpeg|png|gif|bmp|tif|tiff|webp)$ ]]; then
-                        DIR_IMAGES+=("$IMG")
+                for FILE in "$ARG"/*; do
+                    if [ -f "$FILE" ]; then
+                        if [[ "$FILE" =~ \.(jpg|jpeg|png|gif|bmp|tif|tiff|webp)$ ]]; then
+                            DIR_IMAGES+=("$FILE")
+                        else
+                            UNSUPPORTED_FILES+=("$FILE")
+                        fi
                     fi
                 done
                 if [ ${#DIR_IMAGES[@]} -gt 0 ]; then
@@ -229,15 +236,26 @@ case "$COMMAND" in
             elif [ -f "$ARG" ]; then
                 if [[ "$ARG" =~ \.(jpg|jpeg|png|gif|bmp|tif|tiff|webp)$ ]]; then
                     IMAGE_LIST+=("$ARG")
+                else
+                    UNSUPPORTED_FILES+=("$ARG")
                 fi
             fi
         done
         
         shopt -u nocasematch nullglob
         
+        # Print unsupported file warnings before starting the progress bar
+        if [ ${#UNSUPPORTED_FILES[@]} -gt 0 ]; then
+            echo "Warning: Unsupported format(s) skipped:"
+            for U in "${UNSUPPORTED_FILES[@]}"; do
+                echo "  - $U"
+            done
+            echo ""
+        fi
+        
         TOTAL=${#IMAGE_LIST[@]}
         if [ "$TOTAL" -eq 0 ]; then
-            echo "No valid images found."
+            echo "Error: No valid images found to process."
             exit 1
         fi
         
@@ -263,9 +281,13 @@ case "$COMMAND" in
                 convert "$IMG" "$TEMP_PDF" >/dev/null 2>&1
             fi
             
-            if [ -f "$TEMP_PDF" ]; then
+            # Use -s to ensure the file exists AND is larger than 0 bytes
+            if [ -s "$TEMP_PDF" ]; then
                 TEMP_FILES+=("$TEMP_PDF")
                 ((COUNTER++))
+            else
+                rm -f "$TEMP_PDF"
+                FAILED_IMAGES+=("$IMG")
             fi
             
             ((PROCESSED++))
@@ -275,13 +297,20 @@ case "$COMMAND" in
             printf "\r[%s%s] %d%% (%d/%d)" "${BAR:0:FILLED}" "${SPACES:0:EMPTY}" "$PERCENT" "$PROCESSED" "$TOTAL"
         done
         
-        echo ""
+        echo "" 
+        
+        # Print failed conversions after the progress bar finishes
+        if [ ${#FAILED_IMAGES[@]} -gt 0 ]; then
+            echo "Error: The following image(s) failed to convert and were skipped:"
+            for F in "${FAILED_IMAGES[@]}"; do
+                echo "  - $F"
+            done
+            echo ""
+        fi
         
         if [ ${#TEMP_FILES[@]} -eq 0 ]; then
-            echo "Error: No images were successfully converted."
+            echo "Error: No images were successfully converted. Aborting merge."
             exit 1
-        elif [ ${#TEMP_FILES[@]} -lt "$TOTAL" ]; then
-            echo "Warning: $(( TOTAL - ${#TEMP_FILES[@]} )) image(s) failed to convert."
         fi
         
         echo "Merging into PDF..."
