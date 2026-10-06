@@ -2,10 +2,27 @@
 
 `pdfu` is a command-line PDF utility that allows you to manage and manipulate PDF files directly from your terminal. It includes built-in safeguards, such as ensuring output files always use the `.pdf` extension and prompting you before overwriting existing files.
 
-## Dependencies
-To use `pdfu`, your system requires the following tools:
-*   **Ghostscript (`gs`)**: Required for core PDF manipulations like extracting, merging, compressing, and splitting.
-*   **Image Converter**: Either `sips` (macOS native), `magick`, or `convert` (ImageMagick) is required for the `img2pdf` command.
+## Installation
+
+### 1. Install Dependencies
+**macOS (using Homebrew):**
+```bash
+brew install ghostscript
+```
+*(Note: `pdfu` uses the native `sips` tool for image processing on macOS, so no extra image libraries are required).*
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt update
+sudo apt install ghostscript imagemagick
+```
+
+### 2. Install pdfu
+Make the script executable and move it to your system's binary folder so it can be run from anywhere:
+```bash
+chmod +x pdfu
+sudo mv pdfu /usr/local/bin/
+```
 
 ## Commands
 You can view the usage menu at any time by running `pdfu help`.
