@@ -17,15 +17,38 @@ sudo apt update
 sudo apt install ghostscript imagemagick
 ```
 
-### 2. Install pdfu
-Make the script executable and move it to your system's binary folder so it can be run from anywhere:
+### 2. Setup pdfu
+First, make the script executable:
 ```bash
 chmod +x pdfu
+```
+
+You can now use `pdfu` using one of the following methods:
+
+**Option A: System-wide installation**
+Move it to your system's binary folder to run it from anywhere:
+```bash
 sudo mv pdfu /usr/local/bin/
+```
+You can then run commands simply with `pdfu`:
+```bash
+pdfu help
+```
+
+**Option B: Run it locally**
+Keep the file where it is and run it directly using `./`:
+```bash
+./pdfu help
+```
+
+**Option C: Create an alias**
+Add an alias to your shell configuration file (like `~/.zshrc` or `~/.bashrc`) to run it from anywhere without moving the original file:
+```bash
+alias pdfu="/full/path/to/pdfu"
 ```
 
 ## Commands
-You can view the usage menu at any time by running `pdfu help`.
+You can view the usage menu at any time by running `pdfu help` (or `./pdfu help`).
 
 *   **Extract Pages**: `pdfu extract <input.pdf> <output.pdf> <start-end> [start-end...]`
     *   Extracts specific page ranges from a PDF and outputs them into a new, single PDF file.
